@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ETF 일별 수익률 추적</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #1a1a2e;
+    color: #e0e0e0;
+    font-family: 'Malgun Gothic', '맑은 고딕', sans-serif;
+    padding: 24px;
+    min-height: 100vh;
+  }
+  h2 {
+    text-align: center;
+    font-size: 18px;
+    color: #a0b4d0;
+    margin-bottom: 18px;
+    letter-spacing: 1px;
+  }
+  .btn-group {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+  .btn {
+    padding: 7px 22px;
+    border-radius: 20px;
+    border: 1.5px solid #4a6fa5;
+    background: transparent;
+    color: #a0b4d0;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+  }
+  .btn.active {
+    background: #4a6fa5;
+    color: #fff;
+    font-weight: bold;
+  }
+  .btn:hover:not(.active) {
+    background: #243558;
+  }
+  .chart-container {
+    background: #16213e;
+    border-radius: 12px;
+    padding: 20px 20px 16px;
+    position: relative;
+    height: 480px;
+  }
+  .note {
+    margin-top: 16px;
+    font-size: 12.5px;
+    color: #7a92aa;
+    line-height: 1.7;
+    background: #16213e;
+    border-radius: 8px;
+    padding: 12px 16px;
+  }
+  .note strong { color: #a0b4d0; }
+</style>
+</head>
+<body>
+
+<h2>📈 ETF 일별 수익률 추적 (6/8 ~ 6/18)</h2>
+
+<div class="btn-group">
+  <button class="btn active" onclick="filterChart('all', this)">전체</button>
+  <button class="btn" onclick="filterChart('caution', this)">주의종목만</button>
+  <button class="btn" onclick="filterChart('stable', this)">안정종목만</button>
+</div>
+
+<div class="chart-container">
+  <canvas id="returnChart"></canvas>
+</div>
+
+<div class="note">
+  <strong>버튼 사용법:</strong> "전체"는 11종목 모두, "주의종목만"은 변동성·이상신호 있는 4종목(KODEX금융고배당, RISE AI밸류체인, TIGER반도체TOP10, SOL팔란티어), "안정종목만"은 나머지 추세 안정 종목만 따로 봅니다.<br>
+  <strong>차트 범위:</strong> 데이터 행에 날짜/수익률을 추가하면 자동 반영됩니다.
+</div>
+
+<script>
+// ─── 데이터 ──────────────────────────────────────────────────
+const DATES = ['6/8','6/9','6/10','6/11','6/12','6/15','6/16','6/17','6/18'];
+
+const ETF_DATA = [
+  {
+    label: 'KODEX 200타겟위클리커버드콜',
+    short: 'KODEX 200타겟',
+    group: 'stable',
+    totalReturn: 18.15,
+    color: '#4e8ef7',
+    data: [-1.39, 6.65, 1.74, 2.60, 4.69, 10.00, 12.13, 14.51, 18.15],
+  },
+  {
+    label: 'RISE 코리아밸류업위클리고정커버드콜',
+    short: 'RISE 코리아밸류업',
+    group: 'stable',
+    totalReturn: 10.48,
+    color: '#2ecc71',
+    data: [-2.08, 4.94, 1.88, 3.00, 2.07, 6.59, 9.00, 9.61, 10.48],
+  },
+  {
+    label: 'TIGER 배당커버드콜액티브',
+    short: 'TIGER 배당커버드콜',
+    group: 'stable',
+    totalReturn: 30.65,
+    color: '#9b59b6',
+    data: [5.42, 14.83, 9.33, 9.63, 15.66, 21.68, 24.28, 27.22, 30.65],
+  },
+  {
+    label: 'KODEX 금융고배당TOP10타겟위클리커버드콜',
+    short: 'KODEX 금융고배당TOP10',
+    group: 'caution',
+    totalReturn: -7.73,
+    color: '#e74c3c',
+    data: [-9.41, -7.29, -8.55, -8.35, -6.76, -4.26, -3.30, -5.96, -7.73],
+  },
+  {
+    label: 'KODEX 미국배당다우존스타겟커버드콜',
+    short: 'KODEX 미국배당다우존스',
+    group: 'stable',
+    totalReturn: 4.64,
+    color: '#e67e22',
+    data: [7.12, 7.12, 8.55, 7.96, 8.22, 9.21, 5.79, 5.46, 4.64],
+  },
+  {
+    label: 'TIGER 미국S&P500타겟데일리커버드콜',
+    short: 'TIGER 미국S&P500데일리',
+    group: 'stable',
+    totalReturn: 5.18,
+    color: '#f06292',
+    data: [6.23, 6.23, 7.41, 5.27, 6.14, 7.47, 5.66, 5.25, 5.18],
+  },
+  {
+    label: 'TIGER 미국배당다우존스타겟데일리커버드콜',
+    short: 'TIGER 미국배당다우존스데일리',
+    group: 'stable',
+    totalReturn: -0.20,
+    color: '#95a5a6',
+    data: [0.87, 0.87, 2.01, 1.83, 0.92, 1.78, 0.84, 0.22, -0.20],
+  },
+  {
+    label: 'RISE 미국AI밸류체인데일리고정커버드콜',
+    short: 'RISE 미국AI밸류체인',
+    group: 'caution',
+    totalReturn: 26.90,
+    color: '#f1c40f',
+    data: [26.90, 29.05, 23.55, 19.97, 23.03, 26.90, 28.87, 26.34, 26.90],
+  },
+  {
+    label: 'TIGER 미국AI빅테크10타겟데일리커버드콜',
+    short: 'TIGER 미국AI빅테크10',
+    group: 'stable',
+    totalReturn: 3.54,
+    color: '#1abc9c',
+    data: [10.20, 5.79, 4.62, 3.58, 2.49, 3.41, 4.12, 3.74, 3.54],
+  },
+  {
+    label: 'TIGER 반도체TOP10커버드콜액티브',
+    short: 'TIGER 반도체TOP10',
+    group: 'caution',
+    totalReturn: 35.84,
+    color: '#3498db',
+    data: [8.22, 20.87, 12.54, 15.90, 22.06, 26.20, 26.64, 29.56, 35.84],
+  },
+  {
+    label: 'SOL 팔란티어커버드콜OTM채권혼합',
+    short: 'SOL 팔란티어OTM채권혼합',
+    group: 'caution',
+    totalReturn: -2.80,
+    color: '#e91e8c',
+    data: [-3.23, -2.54, -3.26, -3.32, -2.74, -2.74, -2.68, -2.68, -2.80],
+  },
+  {
+    label: 'RISE 테슬라미국채타겟커버드콜혼합(합성)',
+    short: 'RISE 테슬라미국채혼합',
+    group: 'stable',
+    totalReturn: 1.83,
+    color: '#80cbc4',
+    data: [-0.06, 1.18, 1.56, 0.37, 2.05, 3.02, 2.32, 1.99, 1.83],
+  },
+];
+
+// ─── 차트 생성 ────────────────────────────────────────────────
+function buildDatasets(filter) {
+  return ETF_DATA
+    .filter(e => filter === 'all' || e.group === filter)
+    .map(e => ({
+      label: `${e.short} (${e.totalReturn > 0 ? '+' : ''}${e.totalReturn}%)`,
+      data: e.data,
+      borderColor: e.color,
+      backgroundColor: e.color + '22',
+      borderWidth: e.group === 'caution' ? 2.8 : 1.6,
+      borderDash: e.group === 'caution' ? [] : [],
+      pointRadius: 3.5,
+      pointHoverRadius: 6,
+      tension: 0.3,
+      fill: false,
+    }));
+}
+
+const ctx = document.getElementById('returnChart').getContext('2d');
+const chart = new Chart(ctx, {
+  type: 'line',
+  data: {
+    labels: DATES,
+    datasets: buildDatasets('all'),
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: {
+        position: 'top',
+        labels: {
+          color: '#c0cfe0',
+          font: { size: 11.5, family: "'Malgun Gothic', sans-serif" },
+          boxWidth: 14,
+          padding: 12,
+          usePointStyle: true,
+          pointStyle: 'line',
+        },
+      },
+      tooltip: {
+        backgroundColor: '#0f1d35cc',
+        titleColor: '#90b4d0',
+        bodyColor: '#d0dce8',
+        borderColor: '#2a4a70',
+        borderWidth: 1,
+        padding: 12,
+        callbacks: {
+          label: ctx => ` ${ctx.dataset.label.split(' (')[0]}: ${ctx.parsed.y > 0 ? '+' : ''}${ctx.parsed.y.toFixed(2)}%`,
+        },
+      },
+    },
+    scales: {
+      x: {
+        ticks: { color: '#7a92aa', font: { size: 12 } },
+        grid: { color: '#1e3050' },
+      },
+      y: {
+        ticks: {
+          color: '#7a92aa',
+          font: { size: 12 },
+          callback: v => v + '%',
+        },
+        grid: { color: '#1e3050' },
+        title: {
+          display: true,
+          text: '수익률 (%)',
+          color: '#5a7a9a',
+          font: { size: 12 },
+        },
+      },
+    },
+  },
+});
+
+// ─── 필터 버튼 ────────────────────────────────────────────────
+function filterChart(filter, btn) {
+  chart.data.datasets = buildDatasets(filter);
+  chart.update('active');
+  document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+// ─── 새 데이터 추가 함수 (매일 호출용) ──────────────────────
+// 사용법: addDailyData('6/19', [값1, 값2, ... 값12])
+window.addDailyData = function(dateLabel, returns) {
+  DATES.push(dateLabel);
+  chart.data.labels = DATES;
+  returns.forEach((val, i) => {
+    if (ETF_DATA[i]) ETF_DATA[i].data.push(val);
+    if (chart.data.datasets[i]) chart.data.datasets[i].data.push(val);
+  });
+  chart.update();
+};
+</script>
+</body>
+</html>

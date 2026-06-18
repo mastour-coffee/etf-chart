@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>월별 총배당 추이</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #111827;
+    color: #e0e0e0;
+    font-family: 'Malgun Gothic', '맑은 고딕', sans-serif;
+    padding: 28px;
+    min-height: 100vh;
+  }
+
+  /* KPI 카드 */
+  .kpi-row {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .kpi-card {
+    background: #1f2937;
+    border-radius: 10px;
+    padding: 18px 24px;
+    flex: 1;
+    min-width: 0;
+  }
+  .kpi-label {
+    font-size: 13px;
+    color: #9ca3af;
+    margin-bottom: 8px;
+  }
+  .kpi-value {
+    font-size: 28px;
+    font-weight: bold;
+    color: #f3f4f6;
+    letter-spacing: -0.5px;
+  }
+  .kpi-value.rate {
+    color: #34d399;
+  }
+  .kpi-value.target {
+    color: #f3f4f6;
+  }
+
+  /* 차트 영역 */
+  .chart-wrap {
+    background: #1f2937;
+    border-radius: 10px;
+    padding: 24px 20px 20px;
+    position: relative;
+    height: 420px;
+  }
+
+  /* 안내 */
+  .note {
+    margin-top: 14px;
+    font-size: 12px;
+    color: #6b7280;
+    line-height: 1.7;
+  }
+  .note strong { color: #9ca3af; }
+</style>
+</head>
+<body>
+
+<!-- ── KPI 카드 ─────────────────────────────────────────── -->
+<div class="kpi-row">
+  <div class="kpi-card">
+    <div class="kpi-label" id="kpi-period-label">2026년 6월 누적</div>
+    <div class="kpi-value" id="kpi-cumulative">695,054원</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">목표(2030년)</div>
+    <div class="kpi-value target" id="kpi-target">2,740,000원</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">목표 달성률</div>
+    <div class="kpi-value rate" id="kpi-rate">25.4%</div>
+  </div>
+</div>
+
+<!-- ── 차트 ─────────────────────────────────────────────── -->
+<div class="chart-wrap">
+  <canvas id="dividendChart"></canvas>
+</div>
+
+<div class="note">
+  <strong>목표선:</strong> 2030년까지 월 배당 274만원 달성 목표 &nbsp;|&nbsp;
+  <strong>달성률:</strong> 현재 누적 / 월 목표금액
+</div>
+
+<script>
+// ─── 설정값 ──────────────────────────────────────────────
+const MONTHLY_TARGET = 2740000;   // 월 목표 배당금 (2030년)
+const CURRENT_YEAR   = 2026;
+
+// ─── 월별 배당 데이터 (단월 — 해당 월 실제 수령액) ───────
+// 순서: 1월, 2월, 3월, 4월, 5월, 6월, 7월, 8월, 9월, 10월, 11월, 12월
+const MONTHLY_DATA = [
+  62708,   // 1월
+  72847,   // 2월
+  87626,   // 3월
+  243932,  // 4월
+  474899,  // 5월
+  695054,  // 6월
+  null, null, null, null, null, null  // 7~12월 (미수령)
+];
+
+// ─── 계산 ────────────────────────────────────────────────
+const MONTHS = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+const received = MONTHLY_DATA.filter(v => v !== null);
+const lastMonthIdx = received.length; // 1-based
+const latestMonthValue = received[received.length - 1]; // 최근 월 단월 배당금
+const rate = (latestMonthValue / MONTHLY_TARGET * 100).toFixed(1);
+
+// KPI 업데이트
+document.getElementById('kpi-period-label').textContent = `${CURRENT_YEAR}년 ${MONTHS[lastMonthIdx - 1]} 배당금`;
+document.getElementById('kpi-cumulative').textContent = latestMonthValue.toLocaleString() + '원';
+document.getElementById('kpi-target').textContent = MONTHLY_TARGET.toLocaleString() + '원';
+document.getElementById('kpi-rate').textContent = rate + '%';
+
+// 목표선 데이터 (받은 달 + 앞으로 남은 달 모두 동일값)
+const targetLine = MONTHS.map(() => MONTHLY_TARGET);
+
+// 실제 배당 바 데이터 (null인 달은 0으로)
+const barData = MONTHLY_DATA.map(v => v === null ? 0 : v);
+
+// ─── 차트 생성 ────────────────────────────────────────────
+const ctx = document.getElementById('dividendChart').getContext('2d');
+new Chart(ctx, {
+  type: 'bar',
+  data: {
+    labels: MONTHS,
+    datasets: [
+      {
+        type: 'bar',
+        label: '월 배당금',
+        data: barData,
+        backgroundColor: ctx => {
+          const v = MONTHLY_DATA[ctx.dataIndex];
+          return v === null ? 'rgba(55,65,81,0.4)' : '#34d399';
+        },
+        borderRadius: 4,
+        order: 2,
+      },
+      {
+        type: 'line',
+        label: `목표선(${(MONTHLY_TARGET/10000).toFixed(0)}만원)`,
+        data: targetLine,
+        borderColor: '#ef4444',
+        borderWidth: 2,
+        borderDash: [8, 5],
+        pointRadius: 0,
+        fill: false,
+        order: 1,
+      },
+    ],
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: {
+        position: 'bottom',
+        labels: {
+          color: '#9ca3af',
+          font: { size: 12, family: "'Malgun Gothic', sans-serif" },
+          boxWidth: 14,
+          padding: 16,
+          usePointStyle: true,
+        },
+      },
+      tooltip: {
+        backgroundColor: '#111827cc',
+        titleColor: '#9ca3af',
+        bodyColor: '#e5e7eb',
+        borderColor: '#374151',
+        borderWidth: 1,
+        padding: 12,
+        callbacks: {
+          label: ctx => {
+            if (ctx.datasetIndex === 1) {
+              return ` 목표: ${ctx.parsed.y.toLocaleString()}원`;
+            }
+            const v = MONTHLY_DATA[ctx.dataIndex];
+            if (v === null) return ' 미수령';
+            const pct = (v / MONTHLY_TARGET * 100).toFixed(1);
+            return ` 배당금: ${v.toLocaleString()}원 (목표의 ${pct}%)`;
+          },
+        },
+      },
+    },
+    scales: {
+      x: {
+        ticks: { color: '#6b7280', font: { size: 12 } },
+        grid: { color: '#1f2937' },
+      },
+      y: {
+        min: 0,
+        max: Math.ceil(MONTHLY_TARGET * 1.15 / 500000) * 500000,
+        ticks: {
+          color: '#6b7280',
+          font: { size: 12 },
+          callback: v => v === 0 ? '0만' : (v / 10000) + '만',
+          stepSize: 500000,
+        },
+        grid: { color: '#374151' },
+      },
+    },
+  },
+});
+</script>
+</body>
+</html>
