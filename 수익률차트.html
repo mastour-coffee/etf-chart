@@ -66,12 +66,16 @@
 </head>
 <body>
 
-<h2>📈 ETF 일별 수익률 추적 (6/8 ~ 6/18)</h2>
+<h2>📈 ETF 일별 수익률 추적 (6/8 ~ 6/19)</h2>
 
 <div class="btn-group">
   <button class="btn active" onclick="filterChart('all', this)">전체</button>
-  <button class="btn" onclick="filterChart('caution', this)">주의종목만</button>
-  <button class="btn" onclick="filterChart('stable', this)">안정종목만</button>
+  <button class="btn" onclick="filterChart('caution', this)">주의종목</button>
+  <button class="btn" onclick="filterChart('stable', this)">안정종목</button>
+  <button class="btn" onclick="filterChart('korean', this)">한국배당</button>
+  <button class="btn" onclick="filterChart('us', this)">미국배당</button>
+  <button class="btn" onclick="filterChart('growth', this)">성장·테마</button>
+  <button class="btn" onclick="filterChart('bond', this)">채권혼합</button>
 </div>
 
 <div class="chart-container">
@@ -79,117 +83,121 @@
 </div>
 
 <div class="note">
-  <strong>버튼 사용법:</strong> "전체"는 11종목 모두, "주의종목만"은 변동성·이상신호 있는 4종목(KODEX금융고배당, RISE AI밸류체인, TIGER반도체TOP10, SOL팔란티어), "안정종목만"은 나머지 추세 안정 종목만 따로 봅니다.<br>
-  <strong>차트 범위:</strong> 데이터 행에 날짜/수익률을 추가하면 자동 반영됩니다.
+  <strong>버튼 사용법:</strong>
+  전체 | 주의종목(4개) | 안정종목 | 한국배당(4개: KODEX200·RISE코리아·TIGER배당·KODEX금융고배당) | 미국배당(3개: KODEX미국·TIGER S&P500·TIGER미국배당) | 성장·테마(3개: RISE AI밸류체인·TIGER AI빅테크10·TIGER반도체TOP10) | 채권혼합(2개: SOL팔란티어·RISE테슬라)
 </div>
 
 <script>
 // ─── 데이터 ──────────────────────────────────────────────────
-const DATES = ['6/8','6/9','6/10','6/11','6/12','6/15','6/16','6/17','6/18'];
+const DATES = ['6/8','6/9','6/10','6/11','6/12','6/15','6/16','6/17','6/18','6/19'];
 
 const ETF_DATA = [
   {
     label: 'KODEX 200타겟위클리커버드콜',
     short: 'KODEX 200타겟',
-    group: 'stable',
-    totalReturn: 18.15,
+    group: 'stable', category: 'korean',
+    totalReturn: 18.94,
     color: '#4e8ef7',
-    data: [-1.39, 6.65, 1.74, 2.60, 4.69, 10.00, 12.13, 14.51, 18.15],
+    data: [-1.39, 6.65, 1.74, 2.60, 4.69, 10.00, 12.13, 14.51, 18.15, 18.94],
   },
   {
     label: 'RISE 코리아밸류업위클리고정커버드콜',
     short: 'RISE 코리아밸류업',
-    group: 'stable',
-    totalReturn: 10.48,
+    group: 'stable', category: 'korean',
+    totalReturn: 10.70,
     color: '#2ecc71',
-    data: [-2.08, 4.94, 1.88, 3.00, 2.07, 6.59, 9.00, 9.61, 10.48],
+    data: [-2.08, 4.94, 1.88, 3.00, 2.07, 6.59, 9.00, 9.61, 10.48, 10.70],
   },
   {
     label: 'TIGER 배당커버드콜액티브',
     short: 'TIGER 배당커버드콜',
-    group: 'stable',
-    totalReturn: 30.65,
+    group: 'stable', category: 'korean',
+    totalReturn: 31.31,
     color: '#9b59b6',
-    data: [5.42, 14.83, 9.33, 9.63, 15.66, 21.68, 24.28, 27.22, 30.65],
+    data: [5.42, 14.83, 9.33, 9.63, 15.66, 21.68, 24.28, 27.22, 30.65, 31.31],
   },
   {
     label: 'KODEX 금융고배당TOP10타겟위클리커버드콜',
     short: 'KODEX 금융고배당TOP10',
-    group: 'caution',
-    totalReturn: -7.73,
+    group: 'caution', category: 'korean',
+    totalReturn: -9.89,
     color: '#e74c3c',
-    data: [-9.41, -7.29, -8.55, -8.35, -6.76, -4.26, -3.30, -5.96, -7.73],
+    data: [-9.41, -7.29, -8.55, -8.35, -6.76, -4.26, -3.30, -5.96, -7.73, -9.89],
   },
   {
     label: 'KODEX 미국배당다우존스타겟커버드콜',
     short: 'KODEX 미국배당다우존스',
-    group: 'stable',
-    totalReturn: 4.64,
+    group: 'stable', category: 'us',
+    totalReturn: 3.87,
     color: '#e67e22',
-    data: [7.12, 7.12, 8.55, 7.96, 8.22, 9.21, 5.79, 5.46, 4.64],
+    data: [7.12, 7.12, 8.55, 7.96, 8.22, 9.21, 5.79, 5.46, 4.64, 3.87],
   },
   {
     label: 'TIGER 미국S&P500타겟데일리커버드콜',
     short: 'TIGER 미국S&P500데일리',
-    group: 'stable',
-    totalReturn: 5.18,
+    group: 'stable', category: 'us',
+    totalReturn: 4.98,
     color: '#f06292',
-    data: [6.23, 6.23, 7.41, 5.27, 6.14, 7.47, 5.66, 5.25, 5.18],
+    data: [6.23, 6.23, 7.41, 5.27, 6.14, 7.47, 5.66, 5.25, 5.18, 4.98],
   },
   {
     label: 'TIGER 미국배당다우존스타겟데일리커버드콜',
     short: 'TIGER 미국배당다우존스데일리',
-    group: 'stable',
-    totalReturn: -0.20,
+    group: 'stable', category: 'us',
+    totalReturn: -1.01,
     color: '#95a5a6',
-    data: [0.87, 0.87, 2.01, 1.83, 0.92, 1.78, 0.84, 0.22, -0.20],
+    data: [0.87, 0.87, 2.01, 1.83, 0.92, 1.78, 0.84, 0.22, -0.20, -1.01],
   },
   {
     label: 'RISE 미국AI밸류체인데일리고정커버드콜',
     short: 'RISE 미국AI밸류체인',
-    group: 'caution',
-    totalReturn: 26.90,
+    group: 'caution', category: 'growth',
+    totalReturn: 28.54,
     color: '#f1c40f',
-    data: [26.90, 29.05, 23.55, 19.97, 23.03, 26.90, 28.87, 26.34, 26.90],
+    data: [26.90, 29.05, 23.55, 19.97, 23.03, 26.90, 28.87, 26.34, 26.90, 28.54],
   },
   {
     label: 'TIGER 미국AI빅테크10타겟데일리커버드콜',
     short: 'TIGER 미국AI빅테크10',
-    group: 'stable',
-    totalReturn: 3.54,
+    group: 'stable', category: 'growth',
+    totalReturn: 4.20,
     color: '#1abc9c',
-    data: [10.20, 5.79, 4.62, 3.58, 2.49, 3.41, 4.12, 3.74, 3.54],
+    data: [10.20, 5.79, 4.62, 3.58, 2.49, 3.41, 4.12, 3.74, 3.54, 4.20],
   },
   {
     label: 'TIGER 반도체TOP10커버드콜액티브',
     short: 'TIGER 반도체TOP10',
-    group: 'caution',
-    totalReturn: 35.84,
+    group: 'caution', category: 'growth',
+    totalReturn: 37.30,
     color: '#3498db',
-    data: [8.22, 20.87, 12.54, 15.90, 22.06, 26.20, 26.64, 29.56, 35.84],
+    data: [8.22, 20.87, 12.54, 15.90, 22.06, 26.20, 26.64, 29.56, 35.84, 37.30],
   },
   {
     label: 'SOL 팔란티어커버드콜OTM채권혼합',
     short: 'SOL 팔란티어OTM채권혼합',
-    group: 'caution',
-    totalReturn: -2.80,
+    group: 'caution', category: 'bond',
+    totalReturn: -3.49,
     color: '#e91e8c',
-    data: [-3.23, -2.54, -3.26, -3.32, -2.74, -2.74, -2.68, -2.68, -2.80],
+    data: [-3.23, -2.54, -3.26, -3.32, -2.74, -2.74, -2.68, -2.68, -2.80, -3.49],
   },
   {
     label: 'RISE 테슬라미국채타겟커버드콜혼합(합성)',
     short: 'RISE 테슬라미국채혼합',
-    group: 'stable',
-    totalReturn: 1.83,
+    group: 'stable', category: 'bond',
+    totalReturn: 3.29,
     color: '#80cbc4',
-    data: [-0.06, 1.18, 1.56, 0.37, 2.05, 3.02, 2.32, 1.99, 1.83],
+    data: [-0.06, 1.18, 1.56, 0.37, 2.05, 3.02, 2.32, 1.99, 1.83, 3.29],
   },
 ];
 
 // ─── 차트 생성 ────────────────────────────────────────────────
 function buildDatasets(filter) {
   return ETF_DATA
-    .filter(e => filter === 'all' || e.group === filter)
+    .filter(e => {
+      if (filter === 'all') return true;
+      if (filter === 'caution' || filter === 'stable') return e.group === filter;
+      return e.category === filter;
+    })
     .map(e => ({
       label: `${e.short} (${e.totalReturn > 0 ? '+' : ''}${e.totalReturn}%)`,
       data: e.data,
